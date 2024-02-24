@@ -170,7 +170,7 @@ def main():
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=args.workers,
+        #num_workers=args.workers,
         pin_memory=True
     )
     
