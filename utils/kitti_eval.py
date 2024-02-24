@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import math
 from utils.utils import *
 from tqdm import tqdm 
+from torch.profiler import profile, record_function, ProfilerActivity
 
 class data_partition():
     def __init__(self, opt, folder):
@@ -92,7 +93,14 @@ class KITTI_tester():
         self.est = []
         for i, seq in enumerate(self.args.val_seq):
             print(f'testing sequence {seq}')
-            pose_est, dec_est, prob_est = self.test_one_path(net, self.dataloader[i], selection, num_gpu=num_gpu, p=p)            
+            if seq == "05" and i == 0:
+                # Added profiler
+                with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+                    with record_function("model_test_single_path"):
+                        pose_est, dec_est, prob_est = self.test_one_path(net, self.dataloader[i], selection, num_gpu=num_gpu, p=p)
+                print(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
+            else:
+                pose_est, dec_est, prob_est = self.test_one_path(net, self.dataloader[i], selection, num_gpu=num_gpu, p=p)            
             pose_est_global, pose_gt_global, t_rel, r_rel, t_rmse, r_rmse, usage, speed = kitti_eval(pose_est, dec_est, self.dataloader[i].poses_rel)
             
             self.est.append({'pose_est_global':pose_est_global, 'pose_gt_global':pose_gt_global, 'decs':dec_est, 'probs':prob_est, 'speed':speed})

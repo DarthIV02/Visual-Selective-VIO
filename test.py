@@ -79,11 +79,12 @@ def main():
 
 
     # Added profiler
-    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
-        with record_function("model_test"):
-            errors = tester.eval(model, 'gumbel-softmax', num_gpu=len(gpu_ids))
+    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+    #    with record_function("model_test"):
+    
+    errors = tester.eval(model, 'gumbel-softmax', num_gpu=len(gpu_ids))
 
-    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+    #print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
     tester.generate_plots(result_dir, 30)
     tester.save_text(result_dir)
     
