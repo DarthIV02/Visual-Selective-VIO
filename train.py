@@ -10,6 +10,7 @@ from collections import defaultdict
 from utils.kitti_eval import KITTI_tester
 import numpy as np
 import math
+from torch.profiler import profile, record_function, ProfilerActivity
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--data_dir', type=str, default='/nfs/turbo/coe-hunseok/mingyuy/KITTI_odometry', help='path to the dataset')
@@ -228,10 +229,15 @@ def main():
         message = f'Epoch: {ep}, lr: {lr}, selection: {selection}, temperaure: {temp:.5f}'
         print(message)
         logger.info(message)
-
-        model.train()
-        avg_pose_loss, avg_penalty_loss = train(model, optimizer, train_loader, selection, temp, logger, ep, p=0.5)
         
+        # Added profiler
+        with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+            with record_function("model_training"):
+                model.train()
+                avg_pose_loss, avg_penalty_loss = train(model, optimizer, train_loader, selection, temp, logger, ep, p=0.5)
+
+        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+
         # Save the model after training
         torch.save(model.module.state_dict(), f'{checkpoints_dir}/{ep:003}.pth')
         message = f'Epoch {ep} training finished, pose loss: {avg_pose_loss:.6f}, penalty_loss: {avg_penalty_loss:.6f}, model saved'
@@ -266,7 +272,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
