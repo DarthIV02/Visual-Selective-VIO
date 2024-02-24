@@ -49,7 +49,8 @@ parser.add_argument('--Lambda', type=float, default=3e-5, help='penalty factor f
 parser.add_argument('--experiment_name', type=str, default='experiment', help='experiment name')
 parser.add_argument('--optimizer', type=str, default='Adam', help='type of optimizer [Adam, SGD]')
 
-parser.add_argument('--pretrain_flownet',type=str, default='./pretrain_models/flownets_bn_EPE2.459.pth.tar', help='wehther to use the pre-trained flownet')
+#parser.add_argument('--pretrain_flownet',type=str, default='./pretrain_models/flownets_bn_EPE2.459.pth.tar', help='wehther to use the pre-trained flownet')
+parser.add_argument('--pretrain_flownet',type=str, default=None, help='wehther to use the pre-trained flownet')
 parser.add_argument('--pretrain', type=str, default=None, help='path to the pretrained model')
 parser.add_argument('--hflip', default=False, action='store_true', help='whether to use horizonal flipping as augmentation')
 parser.add_argument('--color', default=False, action='store_true', help='whether to use color augmentations')
