@@ -10,6 +10,7 @@ from collections import defaultdict
 from utils.kitti_eval import KITTI_tester
 import numpy as np
 import math
+from torch.profiler import profile, record_function, ProfilerActivity
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--data_dir', type=str, default='/nfs/turbo/coe-hunseok/mingyuy/KITTI_odometry', help='path to the dataset')
@@ -74,7 +75,12 @@ def main():
     # Feed model to GPU
     model.cuda(gpu_ids[0])
     model = torch.nn.DataParallel(model, device_ids = gpu_ids)
-    model.eval()
+    # Added profiler
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+        with record_function("model_test"):
+            model.eval()
+
+    print(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
 
     errors = tester.eval(model, 'gumbel-softmax', num_gpu=len(gpu_ids))
     tester.generate_plots(result_dir, 30)
