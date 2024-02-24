@@ -75,14 +75,15 @@ def main():
     # Feed model to GPU
     model.cuda(gpu_ids[0])
     model = torch.nn.DataParallel(model, device_ids = gpu_ids)
+    model.eval()
+
+
     # Added profiler
     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
         with record_function("model_test"):
-            model.eval()
+            errors = tester.eval(model, 'gumbel-softmax', num_gpu=len(gpu_ids))
 
     print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-
-    errors = tester.eval(model, 'gumbel-softmax', num_gpu=len(gpu_ids))
     tester.generate_plots(result_dir, 30)
     tester.save_text(result_dir)
     
