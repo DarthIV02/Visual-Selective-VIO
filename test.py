@@ -80,7 +80,7 @@ def main():
         with record_function("model_test"):
             model.eval()
 
-    print(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
+    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
     errors = tester.eval(model, 'gumbel-softmax', num_gpu=len(gpu_ids))
     tester.generate_plots(result_dir, 30)
