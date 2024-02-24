@@ -232,12 +232,12 @@ def main():
         logger.info(message)
         
         # Added profiler
-        with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
             with record_function("model_training"):
                 model.train()
                 avg_pose_loss, avg_penalty_loss = train(model, optimizer, train_loader, selection, temp, logger, ep, p=0.5)
 
-        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+        logger.info(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
 
         # Save the model after training
         torch.save(model.module.state_dict(), f'{checkpoints_dir}/{ep:003}.pth')
