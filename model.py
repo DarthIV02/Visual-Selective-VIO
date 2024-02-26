@@ -219,7 +219,7 @@ class DeepVIO(nn.Module):
                     decision = decision.unsqueeze(1)
                     logit = logit.unsqueeze(1)
                     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
-                        if decision == 0:
+                        if decision == False:
                             with record_function("pose_net_no"):
                                 pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
                         else:
