@@ -205,20 +205,19 @@ class DeepVIO(nn.Module):
         hidden = torch.zeros(batch_size, self.opt.rnn_hidden_size).to(fv.device) if hc is None else hc[0].contiguous()[:, -1, :]
         fv_alter = torch.zeros_like(fv) # zero padding in the paper, can be replaced by other 
         
-        for i in range(seq_len):
-            if i == 0 and is_first:
-                # The first relative pose is estimated by both images and imu by default
-                pose, hc = self.Pose_net(fv[:, i:i+1, :], None, fi[:, i:i+1, :], None, hc)
-            else:
-                if selection == 'gumbel-softmax':
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+            for i in range(seq_len):
+                if i == 0 and is_first:
+                    # The first relative pose is estimated by both images and imu by default
+                    pose, hc = self.Pose_net(fv[:, i:i+1, :], None, fi[:, i:i+1, :], None, hc)
+                else:
+                    if selection == 'gumbel-softmax':
                     # Otherwise, sample the decision from the policy network
-                    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
                         p_in = torch.cat((fi[:, i, :], hidden), -1)
                         
                         with record_function("policy_net"):
                             logit, decision = self.Policy_net(p_in.detach(), temp)
                         decision = decision.unsqueeze(1)
-                        print(decision)
                         logit = logit.unsqueeze(1)
                         
                         if decision[0][0][0] == 0:
@@ -229,17 +228,17 @@ class DeepVIO(nn.Module):
                                 pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
                         decisions.append(decision)
                         logits.append(logit)
-                    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-                elif selection == 'random':
-                    decision = (torch.rand(fv.shape[0], 1, 2) < p).float()
-                    decision[:,:,1] = 1-decision[:,:,0]
-                    decision = decision.to(fv.device)
-                    logit = 0.5*torch.ones((fv.shape[0], 1, 2)).to(fv.device)
-                    pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
-                    decisions.append(decision)
-                    logits.append(logit)
-            poses.append(pose)
-            hidden = hc[0].contiguous()[:, -1, :]
+                    elif selection == 'random':
+                        decision = (torch.rand(fv.shape[0], 1, 2) < p).float()
+                        decision[:,:,1] = 1-decision[:,:,0]
+                        decision = decision.to(fv.device)
+                        logit = 0.5*torch.ones((fv.shape[0], 1, 2)).to(fv.device)
+                        pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
+                        decisions.append(decision)
+                        logits.append(logit)
+                poses.append(pose)
+                hidden = hc[0].contiguous()[:, -1, :]
+        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
         poses = torch.cat(poses, dim=1)
         decisions = torch.cat(decisions, dim=1)
