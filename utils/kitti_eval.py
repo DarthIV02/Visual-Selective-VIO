@@ -68,7 +68,8 @@ class KITTI_tester():
         # generate data loader for each path
         self.dataloader = []
         for seq in args.val_seq:
-            self.dataloader.append(data_partition(args, seq))
+            if seq=="05":
+                self.dataloader.append(data_partition(args, seq))
 
         self.args = args
     
