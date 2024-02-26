@@ -76,14 +76,18 @@ class KITTI_tester():
     def test_one_path(self, net, df, selection, num_gpu=1, p=0.5):
         hc = None
         pose_list, decision_list, probs_list= [], [], []
-        for i, (image_seq, imu_seq, gt_seq) in tqdm(enumerate(df), total=len(df), smoothing=0.9):  
-            x_in = image_seq.unsqueeze(0).repeat(num_gpu,1,1,1,1).cuda()
-            i_in = imu_seq.unsqueeze(0).repeat(num_gpu,1,1).cuda()
-            with torch.no_grad():
-                pose, decision, probs, hc = net(x_in, i_in, is_first=(i==0), hc=hc, selection=selection, p=p)
-            pose_list.append(pose[0,:,:].detach().cpu().numpy())
-            decision_list.append(decision[0,:,:].detach().cpu().numpy()[:, 0])
-            probs_list.append(probs[0,:,:].detach().cpu().numpy())
+        for i, (image_seq, imu_seq, gt_seq) in tqdm(enumerate(df), total=len(df), smoothing=0.9):
+            if i == 0:
+                with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+                    with record_function("model_test_single_path"):
+                        x_in = image_seq.unsqueeze(0).repeat(num_gpu,1,1,1,1).cuda()
+                        i_in = imu_seq.unsqueeze(0).repeat(num_gpu,1,1).cuda()
+                        with torch.no_grad():
+                            pose, decision, probs, hc = net(x_in, i_in, is_first=(i==0), hc=hc, selection=selection, p=p)
+                        pose_list.append(pose[0,:,:].detach().cpu().numpy())
+                        decision_list.append(decision[0,:,:].detach().cpu().numpy()[:, 0])
+                        probs_list.append(probs[0,:,:].detach().cpu().numpy())
+                print(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
         pose_est = np.vstack(pose_list)
         dec_est = np.hstack(decision_list)
         prob_est = np.vstack(probs_list)        
@@ -96,15 +100,11 @@ class KITTI_tester():
             print(f'testing sequence {seq}')
             if seq == "05" and i == 0:
                 print("First")
-                # Added profiler
-                with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
-                    with record_function("model_test_single_path"):
-                        pose_est, dec_est, prob_est = self.test_one_path(net, self.dataloader[i], selection, num_gpu=num_gpu, p=p)
-                        pose_est_global, pose_gt_global, t_rel, r_rel, t_rmse, r_rmse, usage, speed = kitti_eval(pose_est, dec_est, self.dataloader[i].poses_rel)
-            
-                        self.est.append({'pose_est_global':pose_est_global, 'pose_gt_global':pose_gt_global, 'decs':dec_est, 'probs':prob_est, 'speed':speed})
-                        self.errors.append({'t_rel':t_rel, 'r_rel':r_rel, 't_rmse':t_rmse, 'r_rmse':r_rmse, 'usage':usage})
-                print(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
+                pose_est, dec_est, prob_est = self.test_one_path(net, self.dataloader[i], selection, num_gpu=num_gpu, p=p)            
+                pose_est_global, pose_gt_global, t_rel, r_rel, t_rmse, r_rmse, usage, speed = kitti_eval(pose_est, dec_est, self.dataloader[i].poses_rel)
+                
+                self.est.append({'pose_est_global':pose_est_global, 'pose_gt_global':pose_gt_global, 'decs':dec_est, 'probs':prob_est, 'speed':speed})
+                self.errors.append({'t_rel':t_rel, 'r_rel':r_rel, 't_rmse':t_rmse, 'r_rmse':r_rmse, 'usage':usage})              
             else:
                 pass
                 #pose_est, dec_est, prob_est = self.test_one_path(net, self.dataloader[i], selection, num_gpu=num_gpu, p=p)            
