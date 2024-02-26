@@ -87,7 +87,7 @@ class KITTI_tester():
                         pose_list.append(pose[0,:,:].detach().cpu().numpy())
                         decision_list.append(decision[0,:,:].detach().cpu().numpy()[:, 0])
                         probs_list.append(probs[0,:,:].detach().cpu().numpy())
-                print(prof.key_averages().table(sort_by="gpu_time_total", row_limit=10))
+                print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
         pose_est = np.vstack(pose_list)
         dec_est = np.hstack(decision_list)
         prob_est = np.vstack(probs_list)        
