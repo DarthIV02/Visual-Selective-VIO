@@ -217,6 +217,7 @@ class DeepVIO(nn.Module):
                         with record_function("policy_net"):
                             logit, decision = self.Policy_net(p_in.detach(), temp)
                     decision = decision.unsqueeze(1)
+                    print(decision)
                     logit = logit.unsqueeze(1)
                     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
                         if decision == False:
