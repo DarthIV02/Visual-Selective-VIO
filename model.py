@@ -5,6 +5,7 @@ from torch.nn.init import kaiming_normal_, orthogonal_
 import numpy as np
 from torch.distributions.utils import broadcast_all, probs_to_logits, logits_to_probs, lazy_property, clamp_probs
 import torch.nn.functional as F
+from torch.profiler import profile, record_function, ProfilerActivity
 
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, dropout=0):
@@ -212,10 +213,18 @@ class DeepVIO(nn.Module):
                 if selection == 'gumbel-softmax':
                     # Otherwise, sample the decision from the policy network
                     p_in = torch.cat((fi[:, i, :], hidden), -1)
-                    logit, decision = self.Policy_net(p_in.detach(), temp)
+                    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+                        with record_function("policy_net"):
+                            logit, decision = self.Policy_net(p_in.detach(), temp)
                     decision = decision.unsqueeze(1)
                     logit = logit.unsqueeze(1)
-                    pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
+                    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
+                        if decision == 0:
+                            with record_function("pose_net_no"):
+                                pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
+                        else:
+                            with record_function("pose_net_yes"):
+                                pose, hc = self.Pose_net(fv[:, i:i+1, :], fv_alter[:, i:i+1, :], fi[:, i:i+1, :], decision, hc)
                     decisions.append(decision)
                     logits.append(logit)
                 elif selection == 'random':
