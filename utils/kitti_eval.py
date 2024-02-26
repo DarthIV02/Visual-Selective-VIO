@@ -78,16 +78,16 @@ class KITTI_tester():
         pose_list, decision_list, probs_list= [], [], []
         for i, (image_seq, imu_seq, gt_seq) in tqdm(enumerate(df), total=len(df), smoothing=0.9):
             if i == 0:
-                with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
-                    #with record_function("model_test_single_path"):
-                    x_in = image_seq.unsqueeze(0).repeat(num_gpu,1,1,1,1).cuda()
-                    i_in = imu_seq.unsqueeze(0).repeat(num_gpu,1,1).cuda()
-                    with torch.no_grad():
-                        pose, decision, probs, hc = net(x_in, i_in, is_first=(i==0), hc=hc, selection=selection, p=p)
-                    pose_list.append(pose[0,:,:].detach().cpu().numpy())
-                    decision_list.append(decision[0,:,:].detach().cpu().numpy()[:, 0])
-                    probs_list.append(probs[0,:,:].detach().cpu().numpy())
-                print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+                
+                #with record_function("model_test_single_path"):
+                x_in = image_seq.unsqueeze(0).repeat(num_gpu,1,1,1,1).cuda()
+                i_in = imu_seq.unsqueeze(0).repeat(num_gpu,1,1).cuda()
+                with torch.no_grad():
+                    pose, decision, probs, hc = net(x_in, i_in, is_first=(i==0), hc=hc, selection=selection, p=p)
+                pose_list.append(pose[0,:,:].detach().cpu().numpy())
+                decision_list.append(decision[0,:,:].detach().cpu().numpy()[:, 0])
+                probs_list.append(probs[0,:,:].detach().cpu().numpy())
+                
         pose_est = np.vstack(pose_list)
         dec_est = np.hstack(decision_list)
         prob_est = np.vstack(probs_list)        
