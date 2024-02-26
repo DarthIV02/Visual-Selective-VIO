@@ -93,7 +93,10 @@ class KITTI_tester():
         self.est = []
         for i, seq in enumerate(self.args.val_seq):
             print(f'testing sequence {seq}')
+            print(seq, type(seq))
+            print(i)
             if seq == "05" and i == 0:
+                print("First")
                 # Added profiler
                 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
                     with record_function("model_test_single_path"):
