@@ -78,7 +78,6 @@ class KITTI_tester():
         pose_list, decision_list, probs_list= [], [], []
         for i, (image_seq, imu_seq, gt_seq) in tqdm(enumerate(df), total=len(df), smoothing=0.9):
             if i == 0:
-                
                 #with record_function("model_test_single_path"):
                 x_in = image_seq.unsqueeze(0).repeat(num_gpu,1,1,1,1).cuda()
                 i_in = imu_seq.unsqueeze(0).repeat(num_gpu,1,1).cuda()
